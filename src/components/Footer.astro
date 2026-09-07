@@ -1,0 +1,117 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container footer-container">
+    <div class="footer-brand">
+      <div class="logo">⚡ ART<span class="muted">PORTFOLIO</span></div>
+      <p class="tagline">Una galería estática minimalista diseñada para exhibir creatividad visual con alta performance.</p>
+    </div>
+
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Navegación</h4>
+        <ul>
+          <li><a href="/">Inicio</a></li>
+          <li><a href="/gallery">Galería de Obras</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Categorías</h4>
+        <ul>
+          <li><a href="/gallery?cat=Pintura">Pintura</a></li>
+          <li><a href="/gallery?cat=Fotografia">Fotografía</a></li>
+          <li><a href="/gallery?cat=Arte+Digital">Arte Digital</a></li>
+          <li><a href="/gallery?cat=Escultura">Escultura</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="container copyright-row">
+    <p>&copy; {currentYear} Art Portfolio — Construido con Astro. Todos los derechos reservados.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: auto;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    padding: 4rem 0 2rem 0;
+    transition: background var(--transition-normal);
+  }
+
+  .footer-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  @media (min-width: 768px) {
+    .footer-container {
+      grid-template-columns: 1.5fr 2fr;
+    }
+  }
+
+  .footer-brand .logo {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-brand .muted {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .tagline {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    max-width: 380px;
+    line-height: 1.6;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .footer-col h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+
+  .footer-col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .footer-col a {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+  }
+
+  .footer-col a:hover {
+    color: var(--text-primary);
+  }
+
+  .copyright-row {
+    padding-top: 2rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+</style>

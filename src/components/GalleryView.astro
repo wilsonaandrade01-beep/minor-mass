@@ -1,0 +1,646 @@
+---
+import { galleryData, galleryCategories } from '../data/galleryData';
+---
+
+<section class="gallery-section">
+  <div class="container">
+    <div class="gallery-header">
+      <div class="badge">Colección Activa</div>
+      <h1 class="gallery-title">Galería de Obras</h1>
+      <p class="gallery-intro">
+        Explora nuestra colección completa. Haz clic en cualquier pieza para ver detalles en alta resolución y ficha técnica.
+      </p>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="controls-bar">
+      <div class="category-filters">
+        {galleryCategories.map((cat, index) => (
+          <button 
+            class={`filter-btn ${index === 0 ? 'active' : ''}`}
+            data-category={cat}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      <div class="search-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          id="gallery-search" 
+          placeholder="Buscar por título, artista o etiqueta..." 
+        />
+      </div>
+    </div>
+
+    <!-- Gallery Grid -->
+    <div class="gallery-grid" id="gallery-grid">
+      {galleryData.map((art) => (
+        <div 
+          class="gallery-item"
+          data-id={art.id}
+          data-category={art.category}
+          data-title={art.title.toLowerCase()}
+          data-artist={art.artist.toLowerCase()}
+          data-tags={art.tags.join(' ').toLowerCase()}
+        >
+          <div class="item-inner">
+            <div class="image-container">
+              <img src={art.image} alt={art.title} loading="lazy" />
+              <div class="overlay glass">
+                <span class="overlay-cat">{art.category}</span>
+                <h3 class="overlay-title">{art.title}</h3>
+                <span class="overlay-artist">{art.artist} • {art.year}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div id="no-results" class="no-results hidden">
+      <p>No se encontraron obras que coincidan con tu búsqueda.</p>
+      <button id="reset-filters" class="btn-secondary">Restablecer Filtros</button>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <dialog id="lightbox-modal" class="lightbox">
+    <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
+    <div class="lightbox-content glass">
+      <button class="close-btn" id="lightbox-close" aria-label="Cerrar modal">
+        &times;
+      </button>
+
+      <button class="nav-arrow prev-arrow" id="lightbox-prev" aria-label="Anterior">
+        &#10094;
+      </button>
+
+      <button class="nav-arrow next-arrow" id="lightbox-next" aria-label="Siguiente">
+        &#10095;
+      </button>
+
+      <div class="lightbox-body">
+        <div class="lightbox-image-col">
+          <img id="lightbox-img" src="" alt="" />
+        </div>
+
+        <div class="lightbox-info-col">
+          <span class="lb-badge" id="lightbox-category"></span>
+          <h2 id="lightbox-title"></h2>
+          <p class="lb-artist" id="lightbox-artist-year"></p>
+
+          <div class="lb-details">
+            <div class="detail-row">
+              <span class="detail-label">Técnica:</span>
+              <span id="lightbox-medium"></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Dimensiones:</span>
+              <span id="lightbox-dimensions"></span>
+            </div>
+          </div>
+
+          <p class="lb-description" id="lightbox-description"></p>
+
+          <div class="lb-tags" id="lightbox-tags"></div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+</section>
+
+<!-- Client-side Interactivity Script -->
+<script is:inline define:vars={{ galleryData }}>
+  document.addEventListener('DOMContentLoaded', () => {
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const searchInput = document.getElementById('gallery-search');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    const noResults = document.getElementById('no-results');
+    const resetBtn = document.getElementById('reset-filters');
+
+    const modal = document.getElementById('lightbox-modal');
+    const backdrop = document.getElementById('lightbox-backdrop');
+    const closeBtn = document.getElementById('lightbox-close');
+    const prevBtn = document.getElementById('lightbox-prev');
+    const nextBtn = document.getElementById('lightbox-next');
+
+    const lbImg = document.getElementById('lightbox-img');
+    const lbCategory = document.getElementById('lightbox-category');
+    const lbTitle = document.getElementById('lightbox-title');
+    const lbArtistYear = document.getElementById('lightbox-artist-year');
+    const lbMedium = document.getElementById('lightbox-medium');
+    const lbDimensions = document.getElementById('lightbox-dimensions');
+    const lbDescription = document.getElementById('lightbox-description');
+    const lbTags = document.getElementById('lightbox-tags');
+
+    let currentCategory = 'Todas';
+    let currentSearch = '';
+    let currentArtIndex = 0;
+    let visibleArtworks = [...galleryData];
+
+    function filterGallery() {
+      let count = 0;
+      visibleArtworks = [];
+
+      galleryItems.forEach(item => {
+        const cat = item.dataset.category;
+        const title = item.dataset.title;
+        const artist = item.dataset.artist;
+        const tags = item.dataset.tags;
+
+        const matchesCat = currentCategory === 'Todas' || cat === currentCategory;
+        const matchesSearch = !currentSearch || 
+          title.includes(currentSearch) || 
+          artist.includes(currentSearch) || 
+          tags.includes(currentSearch);
+
+        if (matchesCat && matchesSearch) {
+          item.style.display = 'block';
+          count++;
+          const artObj = galleryData.find(a => a.id === item.dataset.id);
+          if (artObj) visibleArtworks.push(artObj);
+        } else {
+          item.style.display = 'none';
+        }
+      });
+
+      if (count === 0) {
+        noResults?.classList.remove('hidden');
+      } else {
+        noResults?.classList.add('hidden');
+      }
+    }
+
+    // Category Filter Clicks
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCategory = btn.dataset.category || 'Todas';
+        filterGallery();
+      });
+    });
+
+    // Search Input
+    searchInput?.addEventListener('input', (e) => {
+      currentSearch = e.target.value.toLowerCase().trim();
+      filterGallery();
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      currentCategory = 'Todas';
+      currentSearch = '';
+      if (searchInput) searchInput.value = '';
+      filterBtns.forEach((b, i) => b.classList.toggle('active', i === 0));
+      filterGallery();
+    });
+
+    // Lightbox Logic
+    function openLightbox(artId) {
+      const idx = visibleArtworks.findIndex(a => a.id === artId);
+      if (idx !== -1) {
+        currentArtIndex = idx;
+        renderLightboxItem(visibleArtworks[currentArtIndex]);
+        modal?.showModal();
+      }
+    }
+
+    function renderLightboxItem(art) {
+      if (!art) return;
+      lbImg.src = art.image;
+      lbImg.alt = art.title;
+      lbCategory.textContent = art.category;
+      lbTitle.textContent = art.title;
+      lbArtistYear.textContent = `${art.artist} • ${art.year}`;
+      lbMedium.textContent = art.medium;
+      lbDimensions.textContent = art.dimensions;
+      lbDescription.textContent = art.description;
+
+      lbTags.innerHTML = art.tags.map(t => `<span class="tag">#${t}</span>`).join('');
+    }
+
+    galleryItems.forEach(item => {
+      item.addEventListener('click', () => {
+        openLightbox(item.dataset.id);
+      });
+    });
+
+    closeBtn?.addEventListener('click', () => modal?.close());
+    backdrop?.addEventListener('click', () => modal?.close());
+
+    prevBtn?.addEventListener('click', () => {
+      if (visibleArtworks.length === 0) return;
+      currentArtIndex = (currentArtIndex - 1 + visibleArtworks.length) % visibleArtworks.length;
+      renderLightboxItem(visibleArtworks[currentArtIndex]);
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      if (visibleArtworks.length === 0) return;
+      currentArtIndex = (currentArtIndex + 1) % visibleArtworks.length;
+      renderLightboxItem(visibleArtworks[currentArtIndex]);
+    });
+
+    // Keyboard Arrow Navigation
+    document.addEventListener('keydown', (e) => {
+      if (modal?.open) {
+        if (e.key === 'ArrowLeft') prevBtn?.click();
+        if (e.key === 'ArrowRight') nextBtn?.click();
+      }
+    });
+
+    // Check URL parameters (e.g. ?cat=Pintura or ?id=art-01)
+    const urlParams = new URLSearchParams(window.location.search);
+    const catParam = urlParams.get('cat');
+    const idParam = urlParams.get('id');
+
+    if (catParam) {
+      const targetBtn = Array.from(filterBtns).find(b => b.dataset.category?.toLowerCase() === catParam.toLowerCase());
+      if (targetBtn) targetBtn.click();
+    }
+
+    if (idParam) {
+      openLightbox(idParam);
+    }
+  });
+</script>
+
+<style>
+  .gallery-section {
+    padding: 3rem 0 5rem 0;
+  }
+
+  .gallery-header {
+    text-align: center;
+    max-width: 650px;
+    margin: 0 auto 3rem auto;
+  }
+
+  .gallery-title {
+    font-size: 2.75rem;
+    font-weight: 800;
+    margin: 0.8rem 0;
+  }
+
+  .gallery-intro {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .controls-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+  }
+
+  @media (min-width: 900px) {
+    .controls-bar {
+      flex-direction: row;
+    }
+  }
+
+  .category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .filter-btn {
+    padding: 0.5rem 1.1rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+  }
+
+  .filter-btn:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+
+  .filter-btn.active {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border-color: var(--text-primary);
+  }
+
+  .search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .search-box svg {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-muted);
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 0.6rem 1rem 0.6rem 2.6rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color var(--transition-fast);
+  }
+
+  .search-box input:focus {
+    border-color: var(--text-primary);
+  }
+
+  /* Grid Layout */
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .gallery-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .gallery-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .gallery-item {
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  }
+
+  .gallery-item:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .image-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+  }
+
+  .gallery-item:hover .image-container img {
+    transform: scale(1.08);
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.5rem;
+    transition: opacity var(--transition-fast);
+  }
+
+  .gallery-item:hover .overlay {
+    opacity: 1;
+  }
+
+  .overlay-cat {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    margin-bottom: 0.2rem;
+  }
+
+  .overlay-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .overlay-artist {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text-muted);
+  }
+
+  .no-results.hidden {
+    display: none;
+  }
+
+  .btn-secondary {
+    margin-top: 1rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* Lightbox Modal CSS */
+  .lightbox {
+    border: none;
+    padding: 0;
+    background: transparent;
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100%;
+    height: 100%;
+  }
+
+  .lightbox::backdrop {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+  }
+
+  .lightbox-backdrop {
+    position: fixed;
+    inset: 0;
+  }
+
+  .lightbox-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    border-radius: var(--radius-lg);
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1.2rem;
+    z-index: 10;
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+  }
+
+  .nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--transition-fast);
+  }
+
+  .nav-arrow:hover {
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  .prev-arrow { left: 1rem; }
+  .next-arrow { right: 1rem; }
+
+  .lightbox-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .lightbox-body {
+      grid-template-columns: 1.2fr 1fr;
+    }
+  }
+
+  .lightbox-image-col {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-secondary);
+  }
+
+  .lightbox-image-col img {
+    max-height: 550px;
+    width: 100%;
+    object-fit: contain;
+  }
+
+  .lightbox-info-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .lb-badge {
+    align-self: flex-start;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-gold);
+    margin-bottom: 0.4rem;
+  }
+
+  .lb-artist {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .lb-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+    margin-bottom: 1.25rem;
+    font-size: 0.88rem;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .detail-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .lb-description {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+
+  .lb-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  :global(.lb-tags .tag) {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+  }
+</style>
